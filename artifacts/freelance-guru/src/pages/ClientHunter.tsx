@@ -4,7 +4,7 @@ import { Search, MapPin, Zap, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { SiWhatsapp } from "react-icons/si";
 
-const FOURSQUARE_KEY = "NCGP541VMMFAICNJBXU4MCZYT4XHPQL3KVDR4NXAVOS15HEK";
+const FOURSQUARE_KEY = "PW3NLWUOVRWXZ3L3EFXPEDHGZSICVAXYLJB2YTOCM5PTAKHZ";
 
 const MOCK_BUSINESSES: Record<string, { name: string; address: string; tel?: string }[]> = {
   Lahore: [
