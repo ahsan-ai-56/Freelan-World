@@ -1,0 +1,76 @@
+Build a world-class professional web app called "FreelanceGuru AI" - Pakistan's #1 AI toolkit for freelancers. Use React, Tailwind CSS, and Framer Motion.
+
+IMPORTANT API KEYS:
+- Gemini API Key: AQ.Ab8RN6LCV6qgGBkSOBwZU_lrrwe6taL5zd43b8P-P_L2XkSh9w
+- Foursquare API Key: NCGP541VMMFAICNJBXU4MCZYT4XHPQL3KVDR4NXAVOS15HEK
+
+DESIGN:
+- Background: #0a0a0f
+- Cards: #111118
+- Borders: #1e1e30
+- Gradient: #6366f1 to #06b6d4
+- Font: Inter
+- Glassmorphism cards with backdrop blur
+- Animated gradient hero background
+- Premium hover glow effects
+- Fully mobile responsive
+
+NAVBAR (fixed top):
+- Glass blur effect background
+- Logo: bolt icon + "FreelanceGuru AI"
+- Links: Home, Client Hunter, Proposal Writer, Contact, Privacy Policy
+- Dark/Light mode toggle button
+- Mobile hamburger menu
+
+PAGE 1 - HOME:
+- Full screen animated gradient hero
+- Headline: "Pakistan's Most Powerful Freelancer Toolkit"
+- Subheadline: "Find clients, write winning proposals, and grow your freelance career with AI"
+- Buttons: "Hunt Clients" and "Write Proposal"
+- Animated stats: 50000+ Pakistani Freelancers, 100+ Cities, 10x Faster
+- Two feature cards: Client Hunter and Proposal Writer
+- How it works: 3 steps with icons
+- Testimonials: Ali Hassan (Graphic Designer Lahore), Fatima Khan (Web Developer Karachi), Usman Malik (Content Writer Islamabad)
+- Footer: Made with love for Pakistani Freelancers 🇵🇰 Copyright 2026
+
+PAGE 2 - CLIENT HUNTER:
+- Headline: "Find the Best Clients in Your City"
+- Form: Your Skills, City dropdown (Lahore/Karachi/Islamabad/Rawalpindi/Faisalabad/Multan/Peshawar/Quetta), Client Type, You are a (Freelancer or Business)
+- Button: "Hunt Clients Now" with loading spinner
+- Call Foursquare API: https://api.foursquare.com/v3/places/search with Authorization header using Foursquare API Key
+- Search params: query from Client Type, near from selected City Pakistan
+- Each result card shows: business name, address, phone, WhatsApp button, Google Maps button, Hot/Warm/Cold badge, match score progress bar out of 100, Save Lead button
+- Show skeleton loading while fetching
+
+PAGE 3 - PROPOSAL WRITER:
+- Headline: "Write Winning Proposals with AI"
+- Form: Your Name, Your Skills, Project Type, Experience Level (Beginner/Intermediate/Expert), Platform (Fiverr/Upwork/Direct Client), Tone (Professional/Friendly/Confident/Creative)
+- Button: "Generate Proposal" with AI animation
+- Call Gemini API: https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=GEMINI_KEY
+- Show full proposal in styled output box
+- Copy to clipboard button
+- Word count display
+- Download as PDF button
+- Regenerate button
+
+PAGE 4 - CONTACT:
+- Headline: "Get in Touch"
+- Contact form: Name, Email, Message, Send button
+- WhatsApp button linking to: https://wa.me/923269496197
+- Email: ahsanchilll56@gmail.com with copy button
+- Location: Pakistan
+- Response time: Within 24 hours
+
+PAGE 5 - PRIVACY POLICY:
+- Professional privacy policy in English
+- Sections: Data Collection, API Usage (Foursquare and Gemini), Cookies, User Rights
+- Last updated: June 2026
+
+EXTRA FEATURES:
+- Floating WhatsApp button bottom right on every page: https://wa.me/923269496197
+- Toast notifications for success and error states
+- Skeleton loading animations while fetching data
+- Smooth page transitions with Framer Motion
+- Scroll to top button
+- All text in English only
+- SEO meta tags
