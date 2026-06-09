@@ -3,8 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Search, MapPin, Zap, ExternalLink, Phone, Globe, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { SiWhatsapp } from "react-icons/si";
-
-const GEMINI_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+import { geminiGenerate } from "@/lib/gemini";
 const CITIES = ["Lahore", "Karachi", "Islamabad", "Rawalpindi", "Faisalabad", "Multan", "Peshawar", "Quetta"];
 
 interface Lead {
@@ -68,25 +67,9 @@ Rules:
 - Reason should relate to why "${skills || "a freelancer"}" would benefit this business`;
 
     try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_KEY}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.8, maxOutputTokens: 2048 }
-          })
-        }
-      );
-
-      if (!response.ok) throw new Error("Gemini API error");
-
-      const data = await response.json();
-      const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
+      const raw = await geminiGenerate(prompt, 0.8);
       const jsonMatch = raw.match(/\[[\s\S]*\]/);
-      if (!jsonMatch) throw new Error("Invalid response format");
+      if (!jsonMatch) throw new Error("No JSON array found in response");
 
       const parsed: Omit<Lead, "id">[] = JSON.parse(jsonMatch[0]);
       const leads: Lead[] = parsed.map((l, i) => ({ ...l, id: `lead-${i}-${Date.now()}` }));
@@ -94,8 +77,9 @@ Rules:
       setResults(leads);
       toast.success(`Found ${leads.length} AI-generated leads in ${city}!`);
     } catch (err) {
-      console.error(err);
-      toast.error("Failed to generate leads. Please try again.");
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[ClientHunter] Error:", msg, err);
+      toast.error(`Failed to generate leads: ${msg}`);
       setResults([]);
     } finally {
       setIsLoading(false);

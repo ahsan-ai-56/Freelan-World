@@ -3,8 +3,7 @@ import { motion } from "framer-motion";
 import { Sparkles, Copy, Download, RefreshCw, Mail, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
-
-const GEMINI_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+import { geminiGenerate } from "@/lib/gemini";
 
 export default function ProposalWriter() {
   const [, setLocation] = useLocation();
@@ -87,25 +86,13 @@ Make it ${formData.tone.toLowerCase()} in tone. Format it nicely with clear sect
     setProposal("");
 
     try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_KEY}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: buildPrompt() }] }],
-          }),
-        }
-      );
-
-      if (!response.ok) throw new Error("API Error");
-
-      const data = await response.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      const text = await geminiGenerate(buildPrompt());
       setProposal(text);
       toast.success("Proposal generated successfully!");
-    } catch {
-      toast.error("Failed to generate proposal. Please try again.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[ProposalWriter] Error:", msg, err);
+      toast.error(`Failed to generate proposal: ${msg}`);
     } finally {
       setIsLoading(false);
     }
