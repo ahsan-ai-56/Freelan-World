@@ -359,6 +359,7 @@
 #replit-badge,
 [data-replit-badge],
 .replit-ui-theme-root > a[href*="replit"],
+.replit-ui-theme-root > div:last-child,
 iframe[src*="replit.com/badge"] {
   display: none !important;
 }
