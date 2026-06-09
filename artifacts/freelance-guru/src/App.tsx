@@ -6,6 +6,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import ClientHunter from "@/pages/ClientHunter";
 import ProposalWriter from "@/pages/ProposalWriter";
+import OutreachAI from "@/pages/OutreachAI";
 import Contact from "@/pages/Contact";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import Navbar from "@/components/Navbar";
@@ -21,6 +22,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/client-hunter" component={ClientHunter} />
       <Route path="/proposal-writer" component={ProposalWriter} />
+      <Route path="/outreach-ai" component={OutreachAI} />
       <Route path="/contact" component={Contact} />
       <Route path="/privacy-policy" component={PrivacyPolicy} />
       <Route component={NotFound} />

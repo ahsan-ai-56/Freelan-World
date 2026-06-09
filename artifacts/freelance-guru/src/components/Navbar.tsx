@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Zap, Menu, X, Moon, Sun } from "lucide-react";
+import { Zap, Menu, X, Moon, Sun, Globe } from "lucide-react";
 import { useState } from "react";
 import { useTheme } from "next-themes";
 import { motion, AnimatePresence } from "framer-motion";
@@ -13,6 +13,7 @@ export default function Navbar() {
     { name: "Home", path: "/" },
     { name: "Client Hunter", path: "/client-hunter" },
     { name: "Proposal Writer", path: "/proposal-writer" },
+    { name: "OutreachAI", path: "/outreach-ai", icon: Globe },
     { name: "Contact", path: "/contact" },
     { name: "Privacy Policy", path: "/privacy-policy" },
   ];
@@ -31,10 +32,11 @@ export default function Navbar() {
             <Link
               key={link.path}
               href={link.path}
-              className={`text-sm font-medium transition-all hover:text-white hover:glow-primary ${
+              className={`text-sm font-medium transition-all hover:text-white flex items-center gap-1.5 ${
                 location === link.path ? "text-white gradient-text" : "text-muted-foreground"
               }`}
             >
+              {link.icon && <link.icon className="w-3.5 h-3.5" />}
               {link.name}
             </Link>
           ))}
@@ -78,10 +80,11 @@ export default function Navbar() {
                   key={link.path}
                   href={link.path}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`text-base font-medium py-2 ${
+                  className={`text-base font-medium py-2 flex items-center gap-2 ${
                     location === link.path ? "gradient-text" : "text-muted-foreground"
                   }`}
                 >
+                  {link.icon && <link.icon className="w-4 h-4" />}
                   {link.name}
                 </Link>
               ))}
