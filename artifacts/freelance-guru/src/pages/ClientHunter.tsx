@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Search, MapPin, Zap, Map as MapIcon } from "lucide-react";
+import { Search, MapPin, Zap, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { SiWhatsapp } from "react-icons/si";
+
+const FOURSQUARE_KEY = "NCGP541VMMFAICNJBXU4MCZYT4XHPQL3KVDR4NXAVOS15HEK";
 
 const CITIES = ["Lahore", "Karachi", "Islamabad", "Rawalpindi", "Faisalabad", "Multan", "Peshawar", "Quetta"];
 
@@ -45,17 +47,12 @@ export default function ClientHunter() {
     setResults(null);
 
     try {
-      const FOURSQUARE_KEY = import.meta.env.VITE_FOURSQUARE_API_KEY;
-      if (!FOURSQUARE_KEY) {
-        throw new Error("API Key missing");
-      }
-
       const response = await fetch(
-        `https://api.foursquare.com/v3/places/search?query=${encodeURIComponent(clientType)}&near=${encodeURIComponent(city + ', Pakistan')}&limit=15`,
+        `https://api.foursquare.com/v3/places/search?query=${encodeURIComponent(clientType)}&near=${encodeURIComponent(city + ",Pakistan")}&limit=10`,
         {
           headers: {
-            'Authorization': FOURSQUARE_KEY,
-            'Accept': 'application/json'
+            "Authorization": FOURSQUARE_KEY,
+            "Accept": "application/json"
           }
         }
       );
@@ -263,22 +260,32 @@ export default function ClientHunter() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 mt-auto">
-                      <a 
-                        href={`https://wa.me/923269496197?text=Hi, I am contacting you regarding your business ${place.name}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] border border-[#25D366]/50 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors"
-                      >
-                        <SiWhatsapp className="w-4 h-4" /> Message
-                      </a>
-                      <button 
+                    <div className="flex flex-col gap-2 mt-auto">
+                      <div className="grid grid-cols-2 gap-2">
+                        <a
+                          href={`https://wa.me/923269496197?text=Hi, I found your business "${place.name}" and would like to discuss a project`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] border border-[#25D366]/50 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors"
+                        >
+                          <SiWhatsapp className="w-4 h-4" /> WhatsApp
+                        </a>
+                        <a
+                          href={`https://www.google.com/maps/search/${encodeURIComponent(place.name + " " + city + " Pakistan")}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/50 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors"
+                        >
+                          <ExternalLink className="w-4 h-4" /> Maps
+                        </a>
+                      </div>
+                      <button
                         onClick={() => toggleSaveLead(place.fsq_id)}
-                        className={`py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${
+                        className={`w-full py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${
                           isSaved ? "bg-primary/20 text-primary border border-primary/50" : "bg-white/5 hover:bg-white/10 text-white border border-white/10"
                         }`}
                       >
-                        {isSaved ? "Saved ✓" : "Save Lead"}
+                        {isSaved ? "✓ Lead Saved" : "Save Lead"}
                       </button>
                     </div>
                   </motion.div>
