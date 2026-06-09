@@ -26,5 +26,13 @@ VITE_FOURSQUARE_API_KEY = "NCGP541VMMFAICNJBXU4MCZYT4XHPQL3KVDR4NXAVOS15HEK"
 VITE_GEMINI_API_KEY = "AQ.Ab8RN6LCV6qgGBkSOBwZU_lrrwe6taL5zd43b8P-P_L2XkSh9w"
 
 [[ports]]
+localPort = 8080
+externalPort = 8080
+
+[[ports]]
+localPort = 8081
+externalPort = 8081
+
+[[ports]]
 localPort = 22757
 externalPort = 80

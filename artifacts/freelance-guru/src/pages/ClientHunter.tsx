@@ -1,31 +1,21 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, MapPin, Zap, ExternalLink } from "lucide-react";
+import { Search, MapPin, Zap, ExternalLink, Phone, Globe, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { SiWhatsapp } from "react-icons/si";
 
+const GEMINI_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const CITIES = ["Lahore", "Karachi", "Islamabad", "Rawalpindi", "Faisalabad", "Multan", "Peshawar", "Quetta"];
 
-interface Place {
+interface Lead {
   id: string;
   name: string;
   address: string;
-  lat: string;
-  lon: string;
-}
-
-interface NominatimResult {
-  place_id: number;
-  display_name: string;
-  lat: string;
-  lon: string;
-  address?: {
-    road?: string;
-    suburb?: string;
-    city?: string;
-    state?: string;
-    country?: string;
-  };
+  phone: string;
+  website?: string;
+  badge: "Hot" | "Warm" | "Cold";
+  score: number;
+  reason: string;
 }
 
 export default function ClientHunter() {
@@ -33,9 +23,8 @@ export default function ClientHunter() {
   const [city, setCity] = useState("Lahore");
   const [clientType, setClientType] = useState("");
   const [userType, setUserType] = useState("Freelancer");
-
   const [isLoading, setIsLoading] = useState(false);
-  const [results, setResults] = useState<Place[] | null>(null);
+  const [results, setResults] = useState<Lead[] | null>(null);
   const [savedLeads, setSavedLeads] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -54,61 +43,87 @@ export default function ClientHunter() {
     setIsLoading(true);
     setResults(null);
 
+    const prompt = `You are a business lead generator for Pakistani freelancers. Generate exactly 9 realistic business leads for a ${userType.toLowerCase()} offering "${skills || "freelance services"}" skills.
+
+City: ${city}, Pakistan
+Target businesses: ${clientType}
+
+Return ONLY a valid JSON array with exactly 9 objects. No markdown, no explanation, just the JSON array. Each object must have these exact fields:
+{
+  "name": "Real-sounding Pakistani business name",
+  "address": "Specific real street/area address in ${city}",
+  "phone": "03XX-XXXXXXX format Pakistani mobile number",
+  "website": "website.pk or null if none",
+  "badge": "Hot" or "Warm" or "Cold",
+  "score": number between 60-98,
+  "reason": "One sentence why this is a good lead"
+}
+
+Rules:
+- 3 must be "Hot" (score 80-98), 3 "Warm" (score 60-79), 3 "Cold" (score 40-65)
+- Names should sound like real Pakistani businesses (use Urdu words, owner names, or industry terms)
+- Addresses must be real areas/streets in ${city} (e.g. Gulberg, DHA, Johar Town for Lahore)
+- Phone numbers: 03XX-XXXXXXX format (0300-0321-0333-0345 etc.)
+- Websites use .pk, .com.pk, or .com (or null)
+- Reason should relate to why "${skills || "a freelancer"}" would benefit this business`;
+
     try {
-      const query = encodeURIComponent(`${clientType} in ${city} Pakistan`);
-      const url = `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=10&addressdetails=1`;
-
-      const response = await fetch(url, {
-        headers: {
-          "Accept": "application/json",
-          "Accept-Language": "en",
-          "User-Agent": "FreelanceGuruAI/1.0"
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.8, maxOutputTokens: 2048 }
+          })
         }
-      });
+      );
 
-      if (!response.ok) throw new Error("Search failed");
+      if (!response.ok) throw new Error("Gemini API error");
 
-      const data: NominatimResult[] = await response.json();
+      const data = await response.json();
+      const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
-      if (data.length === 0) {
-        toast.error("No results found. Try different keywords.");
-        setResults([]);
-        return;
-      }
+      const jsonMatch = raw.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) throw new Error("Invalid response format");
 
-      const places: Place[] = data.map((item) => {
-        const parts = item.display_name.split(",");
-        const name = parts[0].trim();
-        const address = parts.slice(1).join(",").trim();
-        return {
-          id: String(item.place_id),
-          name,
-          address,
-          lat: item.lat,
-          lon: item.lon,
-        };
-      });
+      const parsed: Omit<Lead, "id">[] = JSON.parse(jsonMatch[0]);
+      const leads: Lead[] = parsed.map((l, i) => ({ ...l, id: `lead-${i}-${Date.now()}` }));
 
-      setResults(places);
-      toast.success(`Found ${places.length} results in ${city}!`);
-    } catch {
-      toast.error("Search failed. Please try again.");
+      setResults(leads);
+      toast.success(`Found ${leads.length} AI-generated leads in ${city}!`);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to generate leads. Please try again.");
       setResults([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const toggleSaveLead = (id: string, name: string) => {
-    const newSaved = new Set(savedLeads);
-    if (newSaved.has(id)) {
-      newSaved.delete(id);
+  const toggleSave = (id: string, name: string) => {
+    const next = new Set(savedLeads);
+    if (next.has(id)) {
+      next.delete(id);
     } else {
-      newSaved.add(id);
+      next.add(id);
       toast.success(`"${name}" saved!`);
     }
-    setSavedLeads(newSaved);
-    localStorage.setItem("savedLeads", JSON.stringify(Array.from(newSaved)));
+    setSavedLeads(next);
+    localStorage.setItem("savedLeads", JSON.stringify(Array.from(next)));
+  };
+
+  const badgeStyles: Record<string, string> = {
+    Hot: "bg-red-500/20 text-red-400 border-red-500/50",
+    Warm: "bg-orange-500/20 text-orange-400 border-orange-500/50",
+    Cold: "bg-blue-500/20 text-blue-400 border-blue-500/50",
+  };
+
+  const scoreColor: Record<string, string> = {
+    Hot: "#ef4444",
+    Warm: "#f97316",
+    Cold: "#3b82f6",
   };
 
   return (
@@ -126,25 +141,25 @@ export default function ClientHunter() {
         >
           Find the Best Clients in Your City
         </motion.h1>
-        <p className="text-xl text-muted-foreground">
-          Powered by OpenStreetMap — 100% free, no API key needed
+        <p className="text-xl text-muted-foreground flex items-center justify-center gap-2">
+          <Sparkles className="w-5 h-5 text-primary" />
+          AI-powered leads generated by Google Gemini
         </p>
       </div>
 
       <div className="grid lg:grid-cols-12 gap-8">
-        {/* Search Form */}
+        {/* Form */}
         <div className="lg:col-span-4">
           <div className="glass-card p-6 rounded-2xl sticky top-24">
             <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
               <Search className="w-5 h-5 text-primary" /> Search Filters
             </h3>
-
             <form onSubmit={handleSearch} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Your Skills</label>
                 <input
                   type="text"
-                  placeholder="e.g. Web Development"
+                  placeholder="e.g. Web Development, SEO"
                   className="w-full bg-input border border-border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary outline-none transition-all"
                   value={skills}
                   onChange={(e) => setSkills(e.target.value)}
@@ -170,7 +185,7 @@ export default function ClientHunter() {
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. restaurants, tech companies"
+                  placeholder="e.g. restaurants, law firms, clinics"
                   className="w-full bg-input border border-border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary outline-none transition-all"
                   value={clientType}
                   onChange={(e) => setClientType(e.target.value)}
@@ -207,7 +222,7 @@ export default function ClientHunter() {
                 {isLoading ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Hunting clients...
+                    AI is hunting leads...
                   </>
                 ) : (
                   <>
@@ -223,19 +238,26 @@ export default function ClientHunter() {
         <div className="lg:col-span-8">
           {/* Skeleton */}
           {isLoading && (
-            <div className="grid md:grid-cols-2 gap-4">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="glass-card p-6 rounded-xl animate-pulse">
-                  <div className="h-6 bg-white/10 rounded w-3/4 mb-4" />
-                  <div className="h-4 bg-white/10 rounded w-full mb-2" />
-                  <div className="h-4 bg-white/10 rounded w-2/3 mb-6" />
-                  <div className="h-2 bg-white/10 rounded-full w-full mb-6" />
-                  <div className="flex gap-2">
-                    <div className="h-10 bg-white/10 rounded flex-1" />
-                    <div className="h-10 bg-white/10 rounded flex-1" />
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground flex items-center gap-2 mb-4">
+                <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+                Gemini AI is generating realistic leads for {city}...
+              </p>
+              <div className="grid md:grid-cols-2 gap-4">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="glass-card p-6 rounded-xl animate-pulse">
+                    <div className="h-5 bg-white/10 rounded w-3/4 mb-3" />
+                    <div className="h-3 bg-white/10 rounded w-full mb-2" />
+                    <div className="h-3 bg-white/10 rounded w-2/3 mb-2" />
+                    <div className="h-3 bg-white/10 rounded w-1/2 mb-5" />
+                    <div className="h-1.5 bg-white/10 rounded-full mb-5" />
+                    <div className="flex gap-2">
+                      <div className="h-9 bg-white/10 rounded flex-1" />
+                      <div className="h-9 bg-white/10 rounded flex-1" />
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
 
@@ -243,91 +265,100 @@ export default function ClientHunter() {
           {!isLoading && results && results.length === 0 && (
             <div className="glass-card p-12 rounded-2xl text-center">
               <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-              <h3 className="text-xl font-bold mb-2">No results found</h3>
-              <p className="text-muted-foreground">Try different keywords or another city.</p>
+              <h3 className="text-xl font-bold mb-2">No leads generated</h3>
+              <p className="text-muted-foreground">Try different keywords or check your connection.</p>
             </div>
           )}
 
-          {/* Idle prompt */}
+          {/* Idle */}
           {!isLoading && results === null && (
             <div className="glass-card p-12 rounded-2xl text-center border border-dashed border-white/10">
-              <Zap className="w-12 h-12 text-primary mx-auto mb-4 opacity-60" />
-              <h3 className="text-xl font-bold mb-2">Ready to hunt?</h3>
-              <p className="text-muted-foreground">Fill in the form and click "Hunt Clients Now" to find real businesses in your city.</p>
+              <div className="w-16 h-16 rounded-2xl gradient-bg flex items-center justify-center mx-auto mb-4">
+                <Sparkles className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">AI-Powered Lead Generation</h3>
+              <p className="text-muted-foreground max-w-sm mx-auto">
+                Enter your skills and target client type — Gemini AI will generate 9 realistic Pakistani business leads with contact details.
+              </p>
             </div>
           )}
 
-          {/* Results Grid */}
+          {/* Results */}
           {!isLoading && results && results.length > 0 && (
             <AnimatePresence>
               <div className="grid md:grid-cols-2 gap-4">
-                {results.map((place, i) => {
-                  const isHot = i % 3 === 0;
-                  const isWarm = i % 3 === 1;
-                  const badgeClass = isHot
-                    ? "bg-red-500/20 text-red-400 border-red-500/50"
-                    : isWarm
-                    ? "bg-orange-500/20 text-orange-400 border-orange-500/50"
-                    : "bg-blue-500/20 text-blue-400 border-blue-500/50";
-                  const badgeText = isHot ? "Hot Lead" : isWarm ? "Warm Lead" : "Cold Lead";
-                  const baseScore = isHot ? 60 : isWarm ? 40 : 20;
-                  const score = Math.min(100, baseScore + ((i * 7 + 13) % (isHot ? 41 : 36)));
-                  const isSaved = savedLeads.has(place.id);
-                  const mapsUrl = `https://www.google.com/maps?q=${place.lat},${place.lon}`;
+                {results.map((lead, i) => {
+                  const isSaved = savedLeads.has(lead.id);
+                  const waNumber = lead.phone.replace(/[^0-9]/g, "");
+                  const waFormatted = waNumber.startsWith("0") ? "92" + waNumber.slice(1) : waNumber;
+                  const mapsUrl = `https://www.google.com/maps/search/${encodeURIComponent(lead.name + " " + lead.address + " Pakistan")}`;
 
                   return (
                     <motion.div
-                      key={place.id}
-                      initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      transition={{ delay: i * 0.06 }}
+                      key={lead.id}
+                      initial={{ opacity: 0, y: 16, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ delay: i * 0.07 }}
                       whileHover={{ y: -4 }}
-                      className="glass-card p-6 rounded-xl flex flex-col hover:border-primary/40 transition-colors"
-                      data-testid={`card-place-${i}`}
+                      className="glass-card p-5 rounded-xl flex flex-col hover:border-primary/40 transition-colors"
+                      data-testid={`card-lead-${i}`}
                     >
+                      {/* Header */}
                       <div className="flex justify-between items-start mb-3 gap-2">
-                        <h4 className="font-bold text-lg leading-tight" title={place.name}>
-                          {place.name}
+                        <h4 className="font-bold text-base leading-snug" title={lead.name}>
+                          {lead.name}
                         </h4>
-                        <span className={`text-xs px-2 py-1 rounded-full border whitespace-nowrap shrink-0 ${badgeClass}`}>
-                          {badgeText}
+                        <span className={`text-xs px-2 py-1 rounded-full border whitespace-nowrap shrink-0 font-semibold ${badgeStyles[lead.badge]}`}>
+                          {lead.badge} Lead
                         </span>
                       </div>
 
-                      <div className="space-y-1 mb-4 text-sm text-muted-foreground flex-1">
+                      {/* Details */}
+                      <div className="space-y-1.5 mb-4 text-sm text-muted-foreground flex-1">
                         <p className="flex items-start gap-2">
-                          <MapPin className="w-4 h-4 shrink-0 mt-0.5 text-primary/70" />
-                          <span className="line-clamp-2">{place.address || "Address not listed"}</span>
+                          <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary/70" />
+                          <span className="line-clamp-2">{lead.address}</span>
+                        </p>
+                        <p className="flex items-center gap-2">
+                          <Phone className="w-3.5 h-3.5 shrink-0 text-primary/70" />
+                          {lead.phone}
+                        </p>
+                        {lead.website && (
+                          <p className="flex items-center gap-2">
+                            <Globe className="w-3.5 h-3.5 shrink-0 text-primary/70" />
+                            <span className="truncate">{lead.website}</span>
+                          </p>
+                        )}
+                        <p className="text-xs italic text-muted-foreground/70 pt-0.5">
+                          "{lead.reason}"
                         </p>
                       </div>
 
-                      {/* Match Score */}
+                      {/* Score bar */}
                       <div className="mb-4">
                         <div className="flex justify-between text-xs mb-1">
                           <span className="text-muted-foreground">Match Score</span>
-                          <span className="font-bold">{score}%</span>
+                          <span className="font-bold">{lead.score}%</span>
                         </div>
                         <div className="h-1.5 bg-black/50 rounded-full overflow-hidden">
                           <motion.div
                             className="h-full rounded-full"
                             initial={{ width: 0 }}
-                            animate={{ width: `${score}%` }}
-                            transition={{ delay: i * 0.06 + 0.3, duration: 0.6 }}
-                            style={{
-                              backgroundColor: isHot ? "#ef4444" : isWarm ? "#f97316" : "#3b82f6"
-                            }}
+                            animate={{ width: `${lead.score}%` }}
+                            transition={{ delay: i * 0.07 + 0.3, duration: 0.7, ease: "easeOut" }}
+                            style={{ backgroundColor: scoreColor[lead.badge] }}
                           />
                         </div>
                       </div>
 
-                      {/* Buttons */}
+                      {/* Action buttons */}
                       <div className="flex flex-col gap-2 mt-auto">
                         <div className="grid grid-cols-2 gap-2">
                           <a
-                            href={`https://wa.me/923269496197?text=Hi, I found "${place.name}" and would like to discuss a project`}
+                            href={`https://wa.me/${waFormatted}?text=Hi, I came across ${lead.name} and would love to discuss how I can help your business`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] border border-[#25D366]/50 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors"
+                            className="bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] border border-[#25D366]/50 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors"
                             data-testid={`button-whatsapp-${i}`}
                           >
                             <SiWhatsapp className="w-4 h-4" /> WhatsApp
@@ -336,14 +367,14 @@ export default function ClientHunter() {
                             href={mapsUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/50 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors"
+                            className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/50 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors"
                             data-testid={`button-maps-${i}`}
                           >
                             <ExternalLink className="w-4 h-4" /> Maps
                           </a>
                         </div>
                         <button
-                          onClick={() => toggleSaveLead(place.id, place.name)}
+                          onClick={() => toggleSave(lead.id, lead.name)}
                           className={`w-full py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
                             isSaved
                               ? "bg-primary/20 text-primary border border-primary/50"
