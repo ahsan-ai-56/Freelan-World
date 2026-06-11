@@ -1,4 +1,4 @@
-const GEMINI_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+const GEMINI_KEY = "AQ.Ab8RN6I0nS-iGi8kVdyjWzm9G3lHmRmhCE5s8ZgiGL6tK-2fVw";
 
 const MODELS = [
   "gemini-2.0-flash",
