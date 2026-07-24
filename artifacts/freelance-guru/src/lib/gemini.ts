@@ -1,4 +1,4 @@
-const GROQ_KEY = "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";
+const GROQ_KEY = "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";
 
 export async function geminiGenerate(prompt: string): Promise<string> {
   const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
